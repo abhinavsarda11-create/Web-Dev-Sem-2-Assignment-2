@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyCast Weather</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            background: radial-gradient(circle at top, #1f2a48, #0d1326);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+        }
+
+        .app {
+            width: 380px;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #121a33;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            padding: 20px;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            letter-spacing: 1px;
+        }
+
+        .search-box {
+            display: flex;
+            padding: 15px;
+            gap: 10px;
+            background: #0f1730;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            outline: none;
+            background: #1c2547;
+            color: white;
+        }
+
+        .search-box button {
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: none;
+            background: #4facfe;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .search-box button:hover {
+            background: #00c6ff;
+        }
+
+        .weather-card {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .weather-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .temp {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .city {
+            font-size: 18px;
+            opacity: 0.8;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 10px 20px;
+        }
+
+        .history-section {
+            padding: 15px;
+        }
+
+        .history-section h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        li {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #1c2547;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        li:hover {
+            background: #2a356b;
+            transform: translateX(5px);
+        }
+
+        .clear-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background: #ff4b5c;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        .clear-btn:hover {
+            background: #e63946;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+        <div class="header">
+            <h1>☁ SkyCast</h1>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="Enter city name...">
+            <button onclick="fetchWeather()">Search</button>
+        </div>
+
+        <div class="weather-card" id="result">
+            <div class="weather-icon">🌤</div>
+            <div class="temp">--°C</div>
+            <div class="city">Search for a city</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="history-section">
+            <h3>Recent Searches</h3>
+            <ul id="history"></ul>
+
+            <button class="clear-btn" onclick="clearHistory()">Clear History</button>
+        </div>
+
+    </div>
+
+    <script>
+        let searchHistory = [];
+
+        const input = document.getElementById("cityInput");
+        const resultBox = document.getElementById("result");
+        const historyList = document.getElementById("history");
+
+        const API_KEY = "14ac0ec299dff0bd71094539fe83cf5a";
+
+        input.addEventListener("keypress", function (e) {
+            if (e.key === "Enter") {
+                fetchWeather();
+            }
+        });
+
+        async function fetchWeather() {
+            const city = input.value.trim();
+
+            if (!city) {
+                resultBox.innerHTML = "⚠ Please enter a city name";
+                return;
+            }
+
+            resultBox.innerHTML = "⏳ Loading...";
+
+            try {
+                const res = await fetch(
+                    `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}&units=metric`
+                );
+
+                const data = await res.json();
+
+                if (data.cod !== 200) {
+                    resultBox.innerHTML = "❌ City not found";
+                    return;
+                }
+
+                displayWeather(data);
+                updateHistory(data.name);
+
+            } catch (err) {
+                console.error(err);
+                resultBox.innerHTML = "⚠ Something went wrong";
+            }
+        }
+
+        function displayWeather(data) {
+            const { name } = data;
+            const { temp, humidity } = data.main;
+            const condition = data.weather[0].main;
+
+            resultBox.innerHTML = `
+        <div class="weather-icon">${getIcon(condition)}</div>
+        <div class="temp">${temp}°C</div>
+        <div class="city">${name}</div>
+        <div>Humidity: ${humidity}%</div>
+    `;
+        }
+
+        function getIcon(condition) {
+            switch (condition.toLowerCase()) {
+                case "clear": return "☀";
+                case "clouds": return "☁";
+                case "rain": return "🌧";
+                case "snow": return "❄";
+                case "thunderstorm": return "⛈";
+                default: return "🌤";
+            }
+        }
+
+        function updateHistory(city) {
+            if (!searchHistory.includes(city)) {
+                searchHistory.unshift(city);
+            }
+
+            renderHistory();
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = "";
+
+            searchHistory.forEach(city => {
+                const li = document.createElement("li");
+                li.textContent = city;
+
+                li.addEventListener("click", () => {
+                    input.value = city;
+                    fetchWeather();
+                });
+
+                historyList.appendChild(li);
+            });
+        }
+
+        function clearHistory() {
+            searchHistory = [];
+            renderHistory();
+        }
+    </script>
+
+</body>
+
+</html>
